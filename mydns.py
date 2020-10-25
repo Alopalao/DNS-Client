@@ -89,7 +89,33 @@ def dictionary(response, server):
         print('nada')
     print(response[142:len(response)])
 
+def ip_decoder(message1, message2, message3, message4):
+    ip1 = ord(message1) if len(message1) == 1 else int(message1, 16)
+    ip2 = ord(message2) if len(message2) == 1 else int(message2, 16)
+    ip3 = ord(message3) if len(message3) == 1 else int(message3, 16)
+    ip4 = ord(message4) if len(message4) == 1 else int(message4, 16)
+    ip = str(ip1) + '.' + str(ip2) + '.' + str(ip3) + '.' + str(ip4)
+    return ip
+
+
+def name_decoder(message, pos, length):
+    if(message[pos] == '0c'):
+        return('cs.fiu.edu')
+    else:
+        pos = message.index('c0', pos)
+        word = ''
+        if(message[pos] == message[pos + 2]):
+            while(len(message[pos - 1]) != 2):
+                pos -= 1
+                word = message[pos] + word
+            word = word + '.cs.fiu.edu'
+            return(word)
+        else:
+            return('FIX THIS decoder')
+
+
 def display(message, extra):
+    print('----------------------------------------')
     print('DNS server to query: ' + extra)
     print('Reply received. Content overview:')
     print('\t' + str(int(message[4]+message[5], 16)) + ' Queries')
@@ -99,7 +125,36 @@ def display(message, extra):
     print('\t' + str(INS) + ' Intermediate Name Server')
     AIR = int(message[10]+message[11], 16)
     print('\t' + str(AIR) + ' Additional Information Records')
+    print('Answer section:')
+    pos = 0
+    pos_list = []
+    while(Answers != 0):
+        pos = message.index('c0', pos)
+        pos_list.append(pos)
+        pos += 1
+        name = name_decoder(message, pos, 0)
+        pos = message.index('c0', pos)
+        ip = ip_decoder(message[pos-4], message[pos-3], message[pos-2], message[pos-1])
+        print('\tName : ' + name + '\t' + 'IP : ' + ip)
+        Answers -= 1
+        
+    print('Authoritive section:')
+    while(INS != 0):
+        pos = message.index('c0', pos)
+        pos_list.append(pos) #Look at the position since 'c0' is repeated
+        pos += 1
+        name = name_decoder(message, pos, 0)
+        pos += 1
+        server = name_decoder(message, pos, 0)
+        print('\tName : ' + name + '\t' + 'Name Server : ' + server)
+        aux = message.index('c0', pos)
+        pos = aux if (message[aux] != message[aux+2]) else (aux+1)
+        INS -= 1
     
+    print('Additional Information section:')
+    while(AIR != 0):
+
+        AIR -= 1
 
 
 
@@ -119,8 +174,8 @@ def organize(response, extra):
                 while((response[count] != '\\') & (count < len(response) - 1)):
                     message.append(response[count])
                     count = count + 1
-    display(message, extra)
-    #print(message)
+    #display(message, extra)
+    print(message)
     #print(len(message))
     #print(message[56])
 
@@ -140,6 +195,6 @@ request = bytes.fromhex('4347010000010000000000000263730366697503656475000001000
 mysocket.sendto(request,(extra, Port))
 #response = bytes.decode(mysocket.recvfrom(1024))
 response = (mysocket.recvfrom(521))
-#print(response)
+print(response)
 #dictionary(str(response[0]), extra)
 organize(str(response[0]), extra)
