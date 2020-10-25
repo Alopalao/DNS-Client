@@ -1,15 +1,54 @@
 import socket
+from array import *
 
-def dictionary(response):
-    count = 0
-    queries = 1
+
+def hextoLetter(number):
+    ko = 43
+
+def hextoDeci(number, base):
+    return 
+    
+def messages(x_count, number):
+    switch = {
+        3: (number + ' Queries'),
+        5: (number + ' Answers'),
+        7: (number + ' Intermediate Name Servers'),
+        9: (number + ' Additional Information Records')
+    }
+    return switch.get(x_count, "wut")
+
+def dictionary(response, server):
+    print('DNS server to query: ' + server)
+    print('Reply received. Content overview:')
+    found = 0
+    x_count = 0
+    current = ''
+    queries = 0
     answers = 1
     authority = 4
     additional = 6
+    while(found != -1):
+        found = response.find('x')
+        #print(found)
+        print(x_count)
+        if(x_count == 3 or x_count == 5 or x_count == 7 or x_count == 9): #Questions
+            print('-------------------------------------------')
+            number = response[found - 3:found - 1] + '' + response[found + 1:found + 3]
+            number1 = int(number, 16)
+            print(messages(x_count, str(number1)))
+            response = response[found + 3:len(response)]
+            x_count = x_count + 1
+        elif(found):
+            x_count = x_count + 1
+            response = response[found+1:len(response)]
+
+
     #Info
     print(response[0:12])
     #Questions
+    current = response[12:len(response)]
     print(response[12:20])
+
     #Answers RRs
     print(response[20:28])
     #Authority RRs
@@ -48,9 +87,42 @@ def dictionary(response):
     if(additional > 0):
         #The same as in Answer*
         print('nada')
+    print(response[142:len(response)])
+
+def display(message, extra):
+    print('DNS server to query: ' + extra)
+    print('Reply received. Content overview:')
+    print('\t' + str(int(message[4]+message[5], 16)) + ' Queries')
+    Answers = int(message[6]+message[7], 16)
+    print('\t' + str(Answers) + ' Answers')
+    INS = int(message[8]+message[9], 16)
+    print('\t' + str(INS) + ' Intermediate Name Server')
+    AIR = int(message[10]+message[11], 16)
+    print('\t' + str(AIR) + ' Additional Information Records')
+    
 
 
 
+def organize(response, extra):
+    message = []
+    message.append(response[2])
+    message.append(response[3])
+    count = 0
+    word = ''
+    while(count < len(response) - 1):
+        count = count + 1
+        if(response[count] == 'x'):
+            word = response[count + 1:count + 3]
+            message.append(word)
+            count = count + 3
+            if(response[count] != '\\'):
+                while((response[count] != '\\') & (count < len(response) - 1)):
+                    message.append(response[count])
+                    count = count + 1
+    display(message, extra)
+    #print(message)
+    #print(len(message))
+    #print(message[56])
 
 
 print('---------------------')
@@ -68,5 +140,6 @@ request = bytes.fromhex('4347010000010000000000000263730366697503656475000001000
 mysocket.sendto(request,(extra, Port))
 #response = bytes.decode(mysocket.recvfrom(1024))
 response = (mysocket.recvfrom(521))
-#print(response[0])
-dictionary(str(response[0]))
+#print(response)
+#dictionary(str(response[0]), extra)
+organize(str(response[0]), extra)
