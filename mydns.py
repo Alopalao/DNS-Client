@@ -57,7 +57,8 @@ def display(message, extra):
     AIR = int(message[10]+message[11], 16)
     print('\t' + str(AIR) + ' Additional Information Records')
     print('Answer section:')
-    pos = 28
+    pos = 11
+    pos = message.index('c0', pos)
     name = ''
     while(Answers != 0):
         name = ''
@@ -144,7 +145,7 @@ def organize(response, extra):
 
 
 print('---------------------')
-Name = 'cs.fiu.edu'
+Name = 'facilities.fiu.edu'
 Port = 53
 extra = '202.12.27.33'
 #extra = 'c.edu-servers.net'
@@ -160,6 +161,7 @@ mysocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 result = False
 while (result == False):
     request = bytes.fromhex('43470100000100000000000002637303666975036564750000010001')
+
     mysocket.sendto(request,(extra, Port))
     response = (mysocket.recvfrom(521))
     extra = organize(str(response[0]), extra)
