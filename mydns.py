@@ -58,6 +58,7 @@ def display(message, extra):
     print('\t' + str(AIR) + ' Additional Information Records')
     print('Answer section:')
     pos = 28
+    name = ''
     while(Answers != 0):
         name = ''
         if(message[pos] == 'c0'):
@@ -101,7 +102,10 @@ def display(message, extra):
             pos += 16
             print('\tName : ', name)
         AIR -= 1
-
+    if(int(message[6]+message[7], 16) > 0):
+        return (str(int(message[6]+message[7], 16)))
+    else:
+        return (name)
 
 
 def organize(response, extra):
@@ -136,22 +140,28 @@ def organize(response, extra):
                 else:
                     message.append('5c')
                 count += 1
-    display(message, extra)
+    return(display(message, extra))
 
 
 print('---------------------')
 Name = 'cs.fiu.edu'
 Port = 53
-#extra = '202.12.27.33'
-extra = 'c.edu-servers.net'
+extra = '202.12.27.33'
+#extra = 'c.edu-servers.net'
 #extra = 'nameserver2.fiu.edu'
-
 #extra = 'sagwa-ns.cs.fiu.edu'
 extra2 = '131.94.130.238'
 
+#extra = 'a.edu-servers.net'
+#extra = 'nameserver1.fiu.edu'
+#extra = 'offsite.cs.fiu.edu'
+
 mysocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-request = bytes.fromhex('43470100000100000000000002637303666975036564750000010001')
-mysocket.sendto(request,(extra, Port))
-response = (mysocket.recvfrom(521))
-#print(response)
-organize(str(response[0]), extra)
+result = False
+while (result == False):
+    request = bytes.fromhex('43470100000100000000000002637303666975036564750000010001')
+    mysocket.sendto(request,(extra, Port))
+    response = (mysocket.recvfrom(521))
+    extra = organize(str(response[0]), extra)
+    if(len(extra) == 1):
+        result = True
