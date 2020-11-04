@@ -1,4 +1,5 @@
 import socket
+import sys
 from array import *
 
 
@@ -29,21 +30,32 @@ def name_decoder(message, pos, length):
     if(message[pos] == 'c0'):
         return (copy(message, pos))
     else:
-        pos += 1
-        length -= 1
-        name = ''
-        while(length > 0):
-            if(message[pos] == 'c0'):
-                length -= 2
-                name = name + '.' + copy(message, pos)
-            else:
+        if(length == 0):
+            name = ''
+            pos += 1
+            while(message[pos] != '00'):
                 if(len(message[pos]) == 2):
                     name = name + '.'
                 else:
                     name = name + message[pos]
-                length -= 1
                 pos += 1
-        return (name)
+            return (name)
+        else:
+            pos += 1
+            length -= 2
+            name = ''
+            while(length > 0):
+                if(message[pos] == 'c0'):
+                    length -= 2
+                    name = name + '.' + copy(message, pos)
+                else:
+                    if(len(message[pos]) == 2):
+                        name = name + '.'
+                    else:
+                        name = name + message[pos]
+                    length -= 1
+                    pos += 1
+            return (name)
 
 def display(message, extra):
     print('----------------------------------------')
@@ -57,40 +69,43 @@ def display(message, extra):
     AIR = int(message[10]+message[11], 16)
     print('\t' + str(AIR) + ' Additional Information Records')
     print('Answer section:')
-    pos = 11
-    pos = message.index('c0', pos)
+    pos = 12
+    notfound = True
+    while (notfound):
+        num = int(message[pos], 16)
+        pos += (num + 1)
+        if(message[pos] == '00'):
+            notfound = False
+    pos += 5
     name = ''
     while(Answers != 0):
         name = ''
-        if(message[pos] == 'c0'):
-            name = name_decoder(message, pos, 0)
-        pos += 1
-        pos = message.index('c0', pos)
-        ip = ip_decoder(message[pos-4], message[pos-3], message[pos-2], message[pos-1])
+        name = name_decoder(message, pos, 0)
+        pos += 15
+        ip = ip_decoder(message[pos-3], message[pos-2], message[pos-1], message[pos])
         print('\tName : ' + name + '\t' + 'IP : ' + ip)
+        pos += 1
         Answers -= 1
         
     print('Authoritive section:')
     while(INS != 0):
         name = ''
-        if(message[pos] == 'c0'):
-            name = name_decoder(message, pos, 0)
+        server = name_decoder(message, pos, 0)
         pos += 10
         digit1 = message[pos] if (len(message[pos])) == 2 else str(ord(message[pos]))
         pos += 1
         digit2 = message[pos] if (len(message[pos])) == 2 else str(ord(message[pos]))
         pos += 1
         length = int((digit1 + digit2), 16)
-        server = name_decoder(message, pos, length)
+        name = name_decoder(message, pos, length)
         pos += length
-        print('\tName : ' + name + '\t' + 'Name Server : ' + server)
+        print('\tName : ' + server + '\t' + 'Name Server : ' + name)
         INS -= 1
     
     print('Additional Information section:')
     while(AIR != 0):
         name = ''
-        if(message[pos] == 'c0'):
-            name = name_decoder(message, pos, 0)
+        name = name_decoder(message, pos, 0)
         pos = pos + 2
         serverType = int((message[pos+1]), 16)
         pos += 10
@@ -141,29 +156,56 @@ def organize(response, extra):
                 else:
                     message.append('5c')
                 count += 1
+                if(response[count] != '\\'):
+                    while((response[count] != '\\') & (count < len(response) - 1)):
+                        message.append(response[count])
+                        count += 1
     return(display(message, extra))
 
+def StrtoHex(name):
+    word = ''
+    words = []
+    midway = ''
+    result = ''
+    for i in name:
+        if (i != '.'):
+            word += i
+        else:
+            words.append(word)
+            word = ''
+    words.append(word)
+    count = len(words) 
+    while (count > 0):
+        count -= 1
+        c_letters = len(words[count])
+        str_letters = hex(c_letters)
+        str_letters = str_letters[2:4]
+        if(len(str_letters) == 1):
+            str_letters = '0' + str_letters
+        for i in words[count]:
+            aux = hex(ord(i))
+            aux = aux[2:4]
+            midway = midway + aux
+        result = str_letters + midway + result
+        midway = ''
+    result = result + '00'
+       
+    return (result)
 
-print('---------------------')
-Name = 'facilities.fiu.edu'
+
+
+Name = sys.argv[1]
+name1 = '434701000001000000000000'
+name2 = '00010001'
 Port = 53
-extra = '202.12.27.33'
-#extra = 'c.edu-servers.net'
-#extra = 'nameserver2.fiu.edu'
-#extra = 'sagwa-ns.cs.fiu.edu'
-extra2 = '131.94.130.238'
-
-#extra = 'a.edu-servers.net'
-#extra = 'nameserver1.fiu.edu'
-#extra = 'offsite.cs.fiu.edu'
-
+dns_server = sys.argv[2]
+message = name1 + StrtoHex(Name) + name2
 mysocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 result = False
 while (result == False):
-    request = bytes.fromhex('43470100000100000000000002637303666975036564750000010001')
-
-    mysocket.sendto(request,(extra, Port))
+    request = bytes.fromhex(message)
+    mysocket.sendto(request,(dns_server, Port))
     response = (mysocket.recvfrom(521))
-    extra = organize(str(response[0]), extra)
-    if(len(extra) == 1):
+    dns_server = organize(str(response[0]), dns_server)
+    if(len(dns_server) == 1):
         result = True
