@@ -1,3 +1,5 @@
-1. Name: Ortega Yucra, Aldo Arturo		PID: 6156151
-2. https://github.com/Alopalao/Project2
-3. Python 3.7.8
+-Purpose: DNS lookup client, usage of iterative queries to find the domain name.
+-Tools: UDP connection and socket programming.
+-Name: Ortega Yucra, Aldo Arturo
+-https://github.com/Alopalao/Project2
+-Python 3.7.8
